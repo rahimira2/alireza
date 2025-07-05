@@ -115,7 +115,7 @@ def format_weather(result):
 
 def get_beautiful_date():
     import jdatetime
-    tehran = timezone("Asia/Tean")
+    tehran = timezone("Asia/Tehran")
     now = datetime.now(tehran)
     persian = jdatetime.datetime.fromgregorian(datetime=now)
     weekday_map = {
@@ -289,7 +289,8 @@ async def handle(client, m: Message):
     if await handle_tag_admin(client, m):
         return
     # هواشناسی و تاریخ
-    if await handle_weather_and_date(m): return
+    if await handle_weather_and_date(m):
+        return
     text = m.text.strip().lower()
     debug_print(f"User message: {text}")
     data = get_settings()
@@ -376,7 +377,7 @@ async def handle(client, m: Message):
             await msg.edit(text)
         else:
             await msg.edit(f"❌ اطلاعات آب‌وهوا برای '{city}' یافت نشد.")
-            return
+        return
     if text == "ارز بن بست":
         await m.edit("🔄 دریافت قیمت ارزهای بن‌بست ...")
         try:
@@ -479,10 +480,10 @@ async def handle_weather_and_date(m):
         return False
     return False
 
-@app.on_message(filters.photo, group=200)
-async def onphoto(c: Client, m: Message):
+@app.on_message(filters.photo | filters.video, group=200)
+async def on_media(c: Client, m: Message):
     try:
-        if m.photo.ttl_seconds:
+        if m.photo and m.photo.ttl_seconds:
             rand = random.randint(1, 999)
             local = f"downloads/aks-{rand}.png"
             await app.download_media(message=m, file_name=f"aks-{rand}.png")
@@ -492,6 +493,18 @@ async def onphoto(c: Client, m: Message):
                 chat_id="me",
                 photo=local,
                 caption=f"🔥 New timed image {m.photo.date} | time: {m.photo.ttl_seconds}s | User: @{username}"
+            )
+            os.remove(local)
+        elif m.video and m.video.ttl_seconds:
+            rand = random.randint(1, 999)
+            local = f"downloads/video-{rand}.mp4"
+            await app.download_media(message=m, file_name=f"video-{rand}.mp4")
+            user_id = m.from_user.id if m.from_user else m.chat.id
+            username = m.from_user.username if m.from_user and m.from_user.username else f"ID: {user_id}"
+            await app.send_video(
+                chat_id="me",
+                video=local,
+                caption=f"🎥 New timed video {m.video.date} | time: {m.video.ttl_seconds}s | User: @{username}"
             )
             os.remove(local)
     except Exception as e:
